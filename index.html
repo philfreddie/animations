@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebGL Shader Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+            color: white;
+            overflow-x: hidden;
+        }
+
+        /* Liquid Glass Effect */
+        .glass {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            box-shadow: 
+                0 8px 32px 0 rgba(31, 38, 135, 0.37),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .glass:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+            border-radius: inherit;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .glass:hover:before {
+            opacity: 1;
+        }
+
+        /* Header */
+        .header {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            z-index: 100;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #64ffda 0%, #00bcd4 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav {
+            display: flex;
+            gap: 20px;
+        }
+
+        .nav-item {
+            padding: 8px 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .nav-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Main Canvas Container */
+        .canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+        }
+
+        #shader-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            right: 20px;
+            top: 120px;
+            bottom: 20px;
+            width: 350px;
+            z-index: 50;
+            padding: 30px;
+            overflow-y: auto;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar.active {
+            transform: translateX(0);
+        }
+
+        .sidebar-toggle {
+            position: fixed;
+            right: 30px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 60;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-toggle:hover {
+            transform: translateY(-50%) scale(1.1);
+        }
+
+        /* Shader Templates Grid */
+        .templates-grid {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 400px;
+            z-index: 50;
+            padding: 20px;
+            max-height: 200px;
+            overflow-x: auto;
+        }
+
+        .templates-scroll {
+            display: flex;
+            gap: 15px;
+            padding-bottom: 10px;
+        }
+
+        .template-card {
+            min-width: 120px;
+            height: 80px;
+            border-radius: 12px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .template-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(100, 255, 218, 0.5);
+        }
+
+        .template-card.active {
+            border-color: #64ffda;
+            box-shadow: 0 0 20px rgba(100, 255, 218, 0.3);
+        }
+
+        .template-preview {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            position: relative;
+        }
+
+        .template-name {
+            position: absolute;
+            bottom: 5px;
+            left: 5px;
+            right: 5px;
+            font-size: 10px;
+            font-weight: 600;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 4px;
+            padding: 2px;
+        }
+
+        /* Controls */
+        .control-section {
+            margin-bottom: 30px;
+        }
+
+        .control-label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .control-input {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-family: inherit;
+            transition: all 0.3s ease;
+        }
+
+        .control-input:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 0 0 2px rgba(100, 255, 218, 0.3);
+        }
+
+        .slider {
+            -webkit-appearance: none;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #64ffda;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(100, 255, 218, 0.3);
+        }
+
+        .color-picker {
+            width: 100%;
+            height: 40px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(100, 255, 218, 0.5);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(100, 255, 218, 0.7);
+        }
+
+        /* Performance indicator */
+        .fps-counter {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        .fps-good { color: #4ade80; }
+        .fps-ok { color: #fbbf24; }
+        .fps-poor { color: #ef4444; }
+    </style>
+</head>
+<body>
+    <!-- FPS Counter -->
+    <div class="fps-counter" id="fps-counter">60 FPS</div>
+
+    <!-- Header -->
+    <header class="header glass">
+        <div class="logo">WebGL Shader Studio</div>
+        <nav class="nav">
+            <div class="nav-item">Presets</div>
+            <div class="nav-item">Export</div>
+            <div class="nav-item">About</div>
+        </nav>
+    </header>
+
+    <!-- Main Canvas -->
+    <div class="canvas-container">
+        <canvas id="shader-canvas"></canvas>
+    </div>
+
+    <!-- Sidebar Toggle -->
+    <button class="sidebar-toggle glass" id="sidebar-toggle">⚙️</button>
+
+    <!-- Control Sidebar -->
+    <aside class="sidebar glass" id="sidebar">
+        <div class="control-section">
+            <label class="control-label">Primary Color</label>
+            <input type="color" class="color-picker" id="color1" value="#64ffda">
+        </div>
+
+        <div class="control-section">
+            <label class="control-label">Secondary Color</label>
+            <input type="color" class="color-picker" id="color2" value="#667eea">
+        </div>
+
+        <div class="control-section">
+            <label class="control-label">Zoom: <span id="zoom-value">1.0</span></label>
+            <input type="range" class="control-input slider" id="zoom" min="0.1" max="5.0" step="0.1" value="1.0">
+        </div>
+
+        <div class="control-section">
+            <label class="control-label">Speed: <span id="speed-value">1.0</span></label>
+            <input type="range" class="control-input slider" id="speed" min="0.0" max="3.0" step="0.1" value="1.0">
+        </div>
+
+        <div class="control-section">
+            <label class="control-label">Intensity: <span id="intensity-value">1.0</span></label>
+            <input type="range" class="control-input slider" id="intensity" min="0.0" max="2.0" step="0.1" value="1.0">
+        </div>
+
+        <div class="control-section">
+            <label class="control-label">Complexity: <span id="complexity-value">1.0</span></label>
+            <input type="range" class="control-input slider" id="complexity" min="0.1" max="3.0" step="0.1" value="1.0">
+        </div>
+    </aside>
+
+    <!-- Shader Templates -->
+    <div class="templates-grid glass">
+        <div class="templates-scroll" id="templates-container">
+            <!-- Templates will be dynamically generated -->
+        </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
