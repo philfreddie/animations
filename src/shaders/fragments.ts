@@ -737,6 +737,74 @@ void main() {
 }
 `;
 
+// Fire/Flame Effect
+export const fireFragment = `
+precision highp float;
+varying vec2 v_uv;
+
+uniform float u_time;
+uniform vec2 u_resolution;
+uniform float u_intensity;
+uniform vec3 u_color1;
+uniform vec3 u_color2;
+uniform vec3 u_color3;
+
+float random(vec2 st) {
+    return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
+}
+
+float noise(vec2 st) {
+    vec2 i = floor(st);
+    vec2 f = fract(st);
+    
+    float a = random(i);
+    float b = random(i + vec2(1.0, 0.0));
+    float c = random(i + vec2(0.0, 1.0));
+    float d = random(i + vec2(1.0, 1.0));
+    
+    vec2 u = f * f * (3.0 - 2.0 * f);
+    
+    return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
+}
+
+float fbm(vec2 st) {
+    float value = 0.0;
+    float amplitude = 0.5;
+    
+    for (int i = 0; i < 4; i++) {
+        value += amplitude * noise(st);
+        st *= 2.0;
+        amplitude *= 0.5;
+    }
+    
+    return value;
+}
+
+void main() {
+    vec2 uv = v_uv;
+    
+    // Create flame shape
+    float flame = fbm(vec2(uv.x * 3.0, uv.y * 2.0 - u_time * 2.0));
+    flame += fbm(vec2(uv.x * 6.0, uv.y * 4.0 - u_time * 3.0)) * 0.5;
+    
+    // Make flames rise upward
+    flame *= (1.0 - uv.y) * u_intensity;
+    flame = smoothstep(0.0, 1.0, flame);
+    
+    // Create flame colors
+    vec3 color = vec3(0.0);
+    if (flame > 0.7) {
+        color = mix(u_color2, u_color3, (flame - 0.7) / 0.3);
+    } else if (flame > 0.3) {
+        color = mix(u_color1, u_color2, (flame - 0.3) / 0.4);
+    } else if (flame > 0.0) {
+        color = mix(vec3(0.0), u_color1, flame / 0.3);
+    }
+    
+    gl_FragColor = vec4(color, 1.0);
+}
+`;
+
 // Marble Texture
 export const marbleFragment = `
 precision highp float;

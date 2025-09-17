@@ -155,6 +155,9 @@ export class ShaderApp {
     const gl = this.webgl.getContext();
     const time = (Date.now() - this.startTime) / 1000;
     
+    // Use the program before setting uniforms
+    this.webgl.useProgram(this.currentProgram);
+    
     // Set time uniform
     const timeLocation = gl.getUniformLocation(this.currentProgram, 'u_time');
     if (timeLocation) {

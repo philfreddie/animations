@@ -19,7 +19,8 @@ import {
   dnaFragment,
   matrixFragment,
   fluidFragment,
-  marbleFragment
+  marbleFragment,
+  fireFragment
 } from './fragments.js';
 
 export const shaderTemplates: ShaderTemplate[] = [
@@ -271,6 +272,19 @@ export const shaderTemplates: ShaderTemplate[] = [
       u_color1: { type: 'vec3', value: [0.9, 0.9, 0.9], label: 'Color 1' },
       u_color2: { type: 'vec3', value: [0.6, 0.6, 0.6], label: 'Color 2' },
       u_color3: { type: 'vec3', value: [0.3, 0.3, 0.3], label: 'Color 3' }
+    }
+  },
+  {
+    id: 'fire',
+    name: 'Fire',
+    description: 'Realistic fire and flame effects',
+    vertexShader: basicVertexShader,
+    fragmentShader: fireFragment,
+    uniforms: {
+      u_intensity: { type: 'float', value: 2.0, min: 0.5, max: 5.0, step: 0.1, label: 'Intensity' },
+      u_color1: { type: 'vec3', value: [1.0, 0.1, 0.0], label: 'Base Color' },
+      u_color2: { type: 'vec3', value: [1.0, 0.5, 0.0], label: 'Mid Color' },
+      u_color3: { type: 'vec3', value: [1.0, 1.0, 0.8], label: 'Hot Color' }
     }
   }
 ];
